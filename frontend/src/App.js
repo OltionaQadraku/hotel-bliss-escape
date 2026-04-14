@@ -18,7 +18,7 @@ import AdminDashboard from './AdminDashboard';
 import UsersList from './UsersList';
 import CreateUser from './CreateUser';
 import EditUser from './EditUser';
-import ReceptionistSchedule from "./ReceptionistSchedule"; 
+import ReceptionistSchedule from "./ReceptionistSchedule";
 import CleanerSchedule from './CleanerSchedule';
 import AdminScheduleManager from './AdminScheduleManager';
 
@@ -35,11 +35,11 @@ function App() {
   const [authToken, setAuthToken] = useState(null);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token'); 
+    const storedToken = localStorage.getItem('token');
     if (storedToken) {
       setAuthToken(storedToken);
     }
-  }, []); 
+  }, []);
 
   const handleSearch = async () => {
     setErrorMessage('');
@@ -100,7 +100,7 @@ function App() {
       console.log('AdminRoute: Po ridrejtohet te /login - autorizim i dështuar');
       return <Navigate to="/login" replace />;
     }
-    return <Outlet />; 
+    return <Outlet />;
   };
 
   const ReceptionistRoute = () => {
@@ -155,23 +155,25 @@ function App() {
               {rooms.length > 0 ? (
                 <div className="container py-5">
                   <h4 className="mb-4">
-                    Rooms available for  {formData.date || 'N/A'} until {' '}
+                    Rooms available for {formData.date || 'N/A'} until {' '}
                     {formData.checkOutDate || 'N/A'}
                   </h4>
                   <div className="row">
                     {rooms.map((room) => (
                       <div className="col-md-4 mb-4" key={room.id}>
                         <div className="card h-100 shadow-sm">
-                          <img
-                            src={
-                              room.image
-                                ? `http://localhost:8000/storage/rooms/${room.image}`
-                                : 'https://via.placeholder.com/400x250'
-                            }
-                            className="card-img-top"
-                            alt={room.name || 'Room'}
-                            style={{ height: '250px', objectFit: 'cover' }}
-                          />
+                      <img
+                          src={
+                            room.image
+                              ? room.image.startsWith('http')
+                                ? room.image
+                                : `http://localhost:8000/storage/rooms/${room.image}`
+                              : 'https://via.placeholder.com/400x250'
+                          }
+                          className="card-img-top"
+                          alt={room.name || 'Room'}
+                          style={{ height: '250px', objectFit: 'cover' }}
+                        />
                           <div className="card-body">
                             <h5 className="card-title">{room.name || 'Pa emër'}</h5>
                             <p className="card-text">
@@ -211,7 +213,8 @@ function App() {
             </>
           }
         />
-
+        
+        {/* Rrugët e mbetura të nevojshme */}
         <Route path="/login" element={<Login />} />
         <Route element={<UserRoute />}>
           <Route path="/dashboard" element={<UserDashboard />} />
@@ -224,7 +227,7 @@ function App() {
 
         <Route element={<CleanerRoute />}>
           <Route path="/cleaner-dashboard" element={<CleanerDashboard />} />
-           <Route path="/cleaner/schedules" element={<CleanerSchedule authToken={authToken} />} />
+          <Route path="/cleaner/schedules" element={<CleanerSchedule authToken={authToken} />} />
         </Route>
 
         <Route element={<ReceptionistRoute />}>

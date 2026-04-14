@@ -13,6 +13,8 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const API_URL = "http://127.0.0.1:8000/api";
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -30,13 +32,14 @@ const Login = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:8000/api/login', { email, password });
-      console.log('Login response:', response.data); // Debug: Shiko përgjigjen
+      const response = await axios.post(`${API_URL}/login`, { email, password });
+
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user_id', response.data.user.id);
-      // Ruaj rolin e përdoruesit si userType
-      const userRole = response.data.user.role || 'user'; // Përdor 'user' si default nëse roli mungon
+
+      const userRole = response.data.user.role || 'user';
       localStorage.setItem('userType', userRole);
+
       navigate('/');
     } catch (error) {
       setError(error.response?.data?.message || 'Identifikimi dështoi.');
@@ -67,26 +70,27 @@ const Login = () => {
       return;
     }
     if (password !== confirmPassword) {
-      setError('Fjalëkalimi dhe konfirmimi i fjalëkalimit nuk përputhen.');
+      setError('Fjalëkalimi dhe konfirmimi nuk përputhen.');
       setLoading(false);
       return;
     }
 
     try {
-      const response = await axios.post('http://localhost:8000/api/register', {
+      const response = await axios.post(`${API_URL}/register`, {
         name,
         email,
         password,
         password_confirmation: confirmPassword,
       });
-      console.log('Register response:', response.data);
+
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user_id', response.data.user.id);
-      // Ruaj rolin e përdoruesit si userType
-      const userRole = response.data.user.role || 'user'; // Përdor 'user' si default nëse roli mungon
+
+      const userRole = response.data.user.role || 'user';
       localStorage.setItem('userType', userRole);
-      setIsLogin(true);
+
       resetFields();
+      setIsLogin(true);
       navigate('/');
     } catch (error) {
       setError(error.response?.data?.message || 'Regjistrimi dështoi.');
@@ -107,6 +111,7 @@ const Login = () => {
     <div className="d-flex align-items-center justify-content-center vh-100 bg-light">
       <div className="card shadow p-4" style={{ width: '100%', maxWidth: '450px' }}>
         <h2 className="text-center mb-4">{isLogin ? 'Identifikohu' : 'Regjistrohu'}</h2>
+
         <form onSubmit={isLogin ? handleLogin : handleRegister}>
           {!isLogin && (
             <div className="mb-3">
@@ -152,7 +157,7 @@ const Login = () => {
               <input
                 type="password"
                 className="form-control"
-                placeholder="Konfirmo fjalëkalimin tuaj"
+                placeholder="Konfirmo fjalëkalimin"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
@@ -171,7 +176,7 @@ const Login = () => {
 
         <div className="text-center mt-3">
           <p>
-            {isLogin ? 'Nuk keni llogari?' : 'Keni tashmë një llogari?'}{' '}
+            {isLogin ? 'Nuk keni llogari?' : 'Keni tashmë llogari?'}{' '}
             <button className="btn btn-link p-0" onClick={() => setIsLogin(!isLogin)}>
               {isLogin ? 'Regjistrohu' : 'Identifikohu'}
             </button>

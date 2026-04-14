@@ -8,8 +8,9 @@ use App\Http\Controllers\{
     CleanerController,
     DashboardController,
     CheckoutController,
-    ScheduleController, // Ky është për oraret e recepsionistëve
-    CleanerScheduleController // Ky është për oraret e pastruesve
+    ScheduleController,
+    CleanerScheduleController,
+
 };
 
 Route::post('/register', [AuthController::class, 'register']);
