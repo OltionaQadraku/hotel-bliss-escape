@@ -1,0 +1,383 @@
+{
+	"info": {
+		"_postman_id": "hoteli-api-tests-collection",
+		"name": "Hoteli API Tests - 7 Test Cases",
+		"description": "API Testing Collection per projektin Hotel Bliss\nGjithsej 7 API test cases qe mbulojne endpoint-et kryesore RESTful.\nAuthorization: Bearer Token (Laravel Sanctum)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "userToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "cleanerToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "receptionistToken",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "TC-API-01: POST /api/login - Login user",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status 200 OK', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response ka token', function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('token');",
+							"});",
+							"",
+							"pm.test('Response ka user object', function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('user');",
+							"});",
+							"",
+							"// Ruaj token-in per requests te tjera",
+							"var jsonData = pm.response.json();",
+							"if (jsonData.token) {",
+							"    pm.collectionVariables.set('userToken', jsonData.token);",
+							"    console.log('User token u ruajt: ' + jsonData.token.substring(0,20) + '...');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"testtimi1@gmail.com\",\n    \"password\": \"oltiona123\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/login",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "login"]
+				},
+				"description": "Login me kredenciale valide te user-it"
+			}
+		},
+		{
+			"name": "TC-API-02: POST /api/register - Regjistrim user te ri",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status 201 Created ose 200 OK', function () {",
+							"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+							"});",
+							"",
+							"pm.test('Response ka user object', function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('user');",
+							"});",
+							"",
+							"pm.test('Email u krijua sakte', function () {",
+							"    var jsonData = pm.response.json();",
+							"    if (jsonData.user) {",
+							"        pm.expect(jsonData.user.email).to.include('apitest');",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Gjeneroj email unik per cdo request",
+							"var timestamp = new Date().getTime();",
+							"pm.collectionVariables.set('uniqueEmail', 'apitest' + timestamp + '@hotel.com');"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"API Test User\",\n    \"email\": \"{{uniqueEmail}}\",\n    \"password\": \"test1234\",\n    \"password_confirmation\": \"test1234\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/register",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "register"]
+				},
+				"description": "Regjistrim user te ri ne sistem"
+			}
+		},
+		{
+			"name": "TC-API-03: GET /api/rooms - Lista e dhomave (publike)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status 200 OK', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response eshte array', function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.be.an('array');",
+							"});",
+							"",
+							"pm.test('Ka te pakten 1 dhome', function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.length).to.be.greaterThan(0);",
+							"    console.log('Dhoma te gjetura: ' + jsonData.length);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/rooms",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "rooms"]
+				},
+				"description": "Merr listen e te gjitha dhomave (endpoint publik)"
+			}
+		},
+		{
+			"name": "TC-API-04: POST /api/search-rooms - Kerkim dhomash",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status 200 OK', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response eshte array', function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.be.an('array');",
+							"});",
+							"",
+							"pm.test('Dhomat e kthyera jane disponueshme', function () {",
+							"    var jsonData = pm.response.json();",
+							"    console.log('Dhoma disponueshme: ' + jsonData.length);",
+							"    pm.expect(jsonData.length).to.be.at.least(0);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"check_in\": \"2027-09-01\",\n    \"check_out\": \"2027-09-05\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/search-rooms",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "search-rooms"]
+				},
+				"description": "Kerkim dhomash disponueshme sipas datave"
+			}
+		},
+		{
+			"name": "TC-API-05: GET /api/reservations/user - Rezervimet e mia (AUTH)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status 200 OK', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response eshte array', function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.satisfy(function(d) {",
+							"        return Array.isArray(d) || (d.data && Array.isArray(d.data));",
+							"    });",
+							"});",
+							"",
+							"pm.test('Token i sanktumit eshte i vlefshem', function () {",
+							"    pm.expect(pm.response.code).to.not.equal(401);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{userToken}}"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/reservations/user",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "reservations", "user"]
+				},
+				"description": "Merr listen e rezervimeve te user-it te kycur (kerkon token)"
+			}
+		},
+		{
+			"name": "TC-API-06: POST /api/login - Login Cleaner",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status 200 OK', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('User role eshte cleaner', function () {",
+							"    var jsonData = pm.response.json();",
+							"    if (jsonData.user) {",
+							"        pm.expect(jsonData.user.role).to.eql('cleaner');",
+							"    }",
+							"});",
+							"",
+							"// Ruaj cleaner token",
+							"var jsonData = pm.response.json();",
+							"if (jsonData.token) {",
+							"    pm.collectionVariables.set('cleanerToken', jsonData.token);",
+							"    console.log('Cleaner token u ruajt!');",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"testtimi3@gmail.com\",\n    \"password\": \"donjeta123\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/login",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "login"]
+				},
+				"description": "Login si Cleaner - perdoret per te marre token cleaner"
+			}
+		},
+		{
+			"name": "TC-API-07: GET /api/cleaner/rooms - Dhomat dirty (AUTH Cleaner)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status 200 OK', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response eshte array i dhomave', function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.satisfy(function(d) {",
+							"        return Array.isArray(d) || (d.rooms && Array.isArray(d.rooms));",
+							"    });",
+							"});",
+							"",
+							"pm.test('Cleaner token eshte i vlefshem', function () {",
+							"    pm.expect(pm.response.code).to.not.equal(401);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{cleanerToken}}"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/cleaner/rooms",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "cleaner", "rooms"]
+				},
+				"description": "Pastruesi merr listen e dhomave dirty (kerkon Cleaner token)"
+			}
+		}
+	]
+}

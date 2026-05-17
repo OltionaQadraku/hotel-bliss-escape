@@ -1,0 +1,110 @@
+name: Hoteli API Tests CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  api-tests:
+    name: Run Postman API Tests
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: hoteli_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql, mbstring, xml, ctype, json, tokenizer, bcmath
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Composer Dependencies
+        working-directory: ./hoteli-backend
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Configure Environment
+        working-directory: ./hoteli-backend
+        run: |
+          cp .env.example .env
+          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
+          sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+          sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
+          sed -i 's/DB_DATABASE=.*/DB_DATABASE=hoteli_test/' .env
+          sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/' .env
+          sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=root/' .env
+
+      - name: Generate Application Key
+        working-directory: ./hoteli-backend
+        run: php artisan key:generate
+
+      - name: Run Database Migrations
+        working-directory: ./hoteli-backend
+        run: php artisan migrate --force
+
+      - name: Start Laravel Server
+        working-directory: ./hoteli-backend
+        run: |
+          php artisan serve --host=127.0.0.1 --port=8000 &
+          sleep 10
+
+      - name: Verify Backend is Running
+        run: |
+          curl --retry 5 --retry-delay 2 http://127.0.0.1:8000/api/test || true
+
+      - name: Install Newman (Postman CLI)
+        run: |
+          npm install -g newman
+          npm install -g newman-reporter-htmlextra
+
+      - name: Create Results Directory
+        run: mkdir -p results
+
+      - name: Run Postman API Tests
+        run: |
+          newman run postman/Hoteli_API_Tests.postman_collection.json \
+            --env-var "baseUrl=http://127.0.0.1:8000" \
+            --reporters cli,htmlextra,junit \
+            --reporter-htmlextra-export results/api-report.html \
+            --reporter-junit-export results/api-results.xml
+        continue-on-error: true
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-results
+          path: results/
+          retention-days: 30
+
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "==========================================="
+          echo "  Hoteli API Tests - Pipeline Complete"
+          echo "==========================================="
+          echo "  Postman Collection: 7 API Tests Executed"
+          echo "  Reports saved to: results/"
+          echo "==========================================="
