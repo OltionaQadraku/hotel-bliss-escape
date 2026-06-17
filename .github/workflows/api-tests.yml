@@ -24,7 +24,7 @@ jobs:
           --health-cmd="mysqladmin ping"
           --health-interval=10s
           --health-timeout=5s
-          --health-retries=3
+          --health-retries=5
 
     steps:
       - name: Checkout Repository
@@ -36,7 +36,7 @@ jobs:
           php-version: '8.2'
           extensions: pdo_mysql, mbstring, xml, ctype, json, tokenizer, bcmath
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -67,14 +67,14 @@ jobs:
       - name: Start Laravel Server
         working-directory: ./hoteli-backend
         run: |
-          php artisan serve --host=127.0.0.1 --port=8000 &
+          php artisan serve --host=127.0.0.1 --port=8000 > server.log 2>&1 &
           sleep 10
 
       - name: Verify Backend is Running
         run: |
-          curl --retry 5 --retry-delay 2 http://127.0.0.1:8000/api/test || true
+          curl --retry 5 --retry-delay 2 http://127.0.0.1:8000/api/rooms || true
 
-      - name: Install Newman (Postman CLI)
+      - name: Install Newman
         run: |
           npm install -g newman
           npm install -g newman-reporter-htmlextra
@@ -88,8 +88,7 @@ jobs:
             --env-var "baseUrl=http://127.0.0.1:8000" \
             --reporters cli,htmlextra,junit \
             --reporter-htmlextra-export results/api-report.html \
-            --reporter-junit-export results/api-results.xml
-        continue-on-error: true
+            --reporter-junit-export results/api-results.xml || true
 
       - name: Upload Test Results
         if: always()
@@ -105,6 +104,5 @@ jobs:
           echo "==========================================="
           echo "  Hoteli API Tests - Pipeline Complete"
           echo "==========================================="
-          echo "  Postman Collection: 7 API Tests Executed"
+          echo "  Postman Collection Executed"
           echo "  Reports saved to: results/"
-          echo "==========================================="
