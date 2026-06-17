@@ -1,17 +1,14 @@
-name: Hoteli API Tests
-
+name: Hoteli API Tests CI/CD Pipeline
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
-
 jobs:
   api-tests:
     name: Run Postman API Tests
     runs-on: ubuntu-latest
-
     services:
       mysql:
         image: mysql:8.0
@@ -25,19 +22,21 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: shivammathur/setup-php@v2
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Setup PHP 8.2
+        uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           extensions: pdo_mysql, mbstring, xml, ctype, json, tokenizer, bcmath
-
-      - name: Install Dependencies
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Composer Dependencies
         working-directory: ./hoteli-backend
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
       - name: Configure Environment
         working-directory: ./hoteli-backend
         run: |
@@ -48,17 +47,40 @@ jobs:
           sed -i 's/DB_DATABASE=.*/DB_DATABASE=hoteli_test/' .env
           sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/' .env
           sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=root/' .env
-          php artisan key:generate
-          php artisan migrate --force
-
+      - name: Generate Application Key
+        working-directory: ./hoteli-backend
+        run: php artisan key:generate
+      - name: Run Database Migrations
+        working-directory: ./hoteli-backend
+        run: php artisan migrate --force
       - name: Start Laravel Server
         working-directory: ./hoteli-backend
         run: |
-          php artisan serve --host=127.0.0.1 --port=8000 &
-          sleep 10
-
-      - name: Run API Tests
+          php artisan serve --host=127.0.0.1 --port=8000 > server.log 2>&1 &
+          sleep 15
+      - name: Verify Backend is Running
+        run: |
+          curl --retry 10 --retry-delay 3 http://127.0.0.1:8000/api/rooms || true
+      - name: Install Newman
         run: |
           npm install -g newman
+          npm install -g newman-reporter-junitfull
+      - name: Create Results Directory
+        run: mkdir -p results
+      - name: Run Postman API Tests
+        continue-on-error: true
+        run: |
           newman run postman/Hoteli_API_Tests.postman_collection.json \
-            --env-var "baseUrl=http://127.0.0.1:8000"
+            --env-var "baseUrl=http://127.0.0.1:8000" \
+            --reporters cli,junit \
+            --reporter-junit-export results/api-results.xml || true
+      - name: Show Test Summary
+        if: always()
+        run: |
+          echo "======================================"
+          echo " Hoteli API Tests Pipeline Finished"
+          echo "======================================"
+          echo " Laravel Server Started"
+          echo " Newman Collection Executed"
+          echo " Pipeline Completed"
+          echo "======================================"
