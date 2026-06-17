@@ -29,6 +29,17 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Verify Repository Structure
+        run: |
+          echo "Root files:"
+          ls -la
+          echo "Checking hoteli-backend dir:"
+          ls -la hoteli-backend/ || echo "hoteli-backend/ NOT FOUND"
+          echo "Checking postman dir:"
+          ls -la postman/ || echo "postman/ NOT FOUND"
 
       - name: Setup PHP 8.2
         uses: shivammathur/setup-php@v2
@@ -49,7 +60,6 @@ jobs:
         working-directory: ./hoteli-backend
         run: |
           cp .env.example .env
-
           sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
           sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env
           sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
@@ -73,12 +83,12 @@ jobs:
 
       - name: Verify Backend is Running
         run: |
-          curl --retry 10 --retry-delay 3 http://127.0.0.1:8000/api/rooms || true
+          curl --retry 10 --retry-delay 3 --retry-all-errors \
+            http://127.0.0.1:8000/api/rooms || true
 
       - name: Install Newman
         run: |
-          npm install -g newman
-          npm install -g newman-reporter-junitfull
+          npm install -g newman newman-reporter-junitfull
 
       - name: Create Results Directory
         run: mkdir -p results
@@ -90,6 +100,17 @@ jobs:
             --env-var "baseUrl=http://127.0.0.1:8000" \
             --reporters cli,junit \
             --reporter-junit-export results/api-results.xml || true
+
+      - name: Show Server Logs (on failure)
+        if: always()
+        run: cat hoteli-backend/server.log || true
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-results
+          path: results/api-results.xml
 
       - name: Show Test Summary
         if: always()
