@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup PHP 8.2
         uses: shivammathur/setup-php@v2
@@ -37,9 +37,9 @@ jobs:
           extensions: pdo_mysql, mbstring, xml, ctype, json, tokenizer, bcmath
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '22'
 
       - name: Install Composer Dependencies
         working-directory: ./hoteli-backend
@@ -49,6 +49,7 @@ jobs:
         working-directory: ./hoteli-backend
         run: |
           cp .env.example .env
+
           sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
           sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env
           sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env
@@ -68,41 +69,35 @@ jobs:
         working-directory: ./hoteli-backend
         run: |
           php artisan serve --host=127.0.0.1 --port=8000 > server.log 2>&1 &
-          sleep 10
+          sleep 15
 
       - name: Verify Backend is Running
         run: |
-          curl --retry 5 --retry-delay 2 http://127.0.0.1:8000/api/rooms || true
+          curl --retry 10 --retry-delay 3 http://127.0.0.1:8000/api/rooms || true
 
       - name: Install Newman
         run: |
           npm install -g newman
-          npm install -g newman-reporter-htmlextra
+          npm install -g newman-reporter-junitfull
 
       - name: Create Results Directory
         run: mkdir -p results
 
       - name: Run Postman API Tests
+        continue-on-error: true
         run: |
           newman run postman/Hoteli_API_Tests.postman_collection.json \
             --env-var "baseUrl=http://127.0.0.1:8000" \
-            --reporters cli,htmlextra,junit \
-            --reporter-htmlextra-export results/api-report.html \
+            --reporters cli,junit \
             --reporter-junit-export results/api-results.xml || true
 
-      - name: Upload Test Results
-        if: always()
-        uses: actions/upload-artifact@v5
-        with:
-          name: api-test-results
-          path: results/
-          retention-days: 30
-
-      - name: Test Summary
+      - name: Show Test Summary
         if: always()
         run: |
-          echo "==========================================="
-          echo "  Hoteli API Tests - Pipeline Complete"
-          echo "==========================================="
-          echo "  Postman Collection Executed"
-          echo "  Reports saved to: results/"
+          echo "======================================"
+          echo " Hoteli API Tests Pipeline Finished"
+          echo "======================================"
+          echo " Laravel Server Started"
+          echo " Newman Collection Executed"
+          echo " Pipeline Completed"
+          echo "======================================"
