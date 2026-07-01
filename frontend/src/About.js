@@ -22,7 +22,8 @@ function About() {
       {/* Vision Section */}
       <section className="max-w-screen-xl mx-auto px-6 py-16 grid md:grid-cols-3 gap-8 items-center">
         <img
-          
+          src="https://i.pinimg.com/474x/55/5c/3f/555c3f6b5050a0ddc53a603475bef89c.jpg"
+          alt="Our Vision"
           className="rounded-2xl shadow-md"
         />
         <div className="md:col-span-2 text-center md:text-left">

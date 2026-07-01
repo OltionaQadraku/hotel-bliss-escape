@@ -96,7 +96,12 @@ export default function RoomsAndSuites() {
                 </div>
                 <h5 className="card-title">{room.title}</h5>
                 <p className="card-text">{room.description}</p>
-                
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleBookNow(room)}
+                >
+                  Book Now
+                </button>
               </div>
             </div>
           </div>
